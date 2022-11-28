@@ -121,7 +121,7 @@ namespace LaserPointer
 
         public static void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam, int minWidth, int minHeight)
         {
-            MINMAXINFO mmi = (MINMAXINFO)Marshal.PtrToStructure(lParam, typeof(MINMAXINFO));
+            MINMAXINFO mmi = (MINMAXINFO)(Marshal.PtrToStructure(lParam, typeof(MINMAXINFO)) ?? new MINMAXINFO());
 
             // Adjust the maximized size and position to fit the work area of the correct monitor
             int MONITOR_DEFAULTTONEAREST = 0x00000002;
@@ -272,7 +272,7 @@ namespace LaserPointer
             }
 
             /// <summary> Determine if 2 RECT are equal (deep compare) </summary>
-            public override bool Equals(object obj)
+            public override bool Equals(object? obj)
             {
                 if (!(obj is Rect)) { return false; }
                 return (this == (RECT)obj);

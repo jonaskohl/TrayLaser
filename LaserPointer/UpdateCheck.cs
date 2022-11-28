@@ -15,15 +15,10 @@ namespace LaserPointer
     public static class UpdateCheck
     {
         const string CHECK_URL = @"https://jonaskohl.de/software/traylaser/updatecheck.php";
-        const string PRODUCT = "de.jonaskohl.TrayLaser";
-        const string ENDPOINT = "27C132BCF123F84EB0728CE83D274D95";
+        //const string PRODUCT = "de.jonaskohl.TrayLaser";
+        //const string ENDPOINT = "27C132BCF123F84EB0728CE83D274D95";
         const string VFORMAT = "1";
         const string XMLNS = "http://www.jonaskohl.de/2022/updatecheck";
-
-        private static Version? GetCurrentAppVersion()
-        {
-            return Assembly.GetExecutingAssembly()?.GetName()?.Version;
-        }
 
         private static bool IsUpdateCheckDisabled()
         {
@@ -128,11 +123,11 @@ namespace LaserPointer
                     if (result == btnUpdateNow)
                     {
                         using var df = new DownloadForm();
-                        df.DownloadUpdateModal(owner, ui.Binary);
+                        df.DownloadUpdateModal(owner, ui.Binary!);
                     }
                     else if (result == btnViewOnline)
                     {
-                        if (ui.DetailsURL.StartsWith("https://"))
+                        if (ui.DetailsURL!.StartsWith("https://"))
                             Process.Start(new ProcessStartInfo()
                             {
                                 FileName = ui.DetailsURL,
@@ -149,14 +144,8 @@ namespace LaserPointer
 
             XNamespace ns = XMLNS;
 
-            var asm = Assembly.GetExecutingAssembly();
-            var appname = asm?.GetName().Name ?? "<UNKNOWN>";
-            var appver = GetCurrentAppVersion()?.ToString() ?? "<UNKNOWN>";
-
-            var ua = $"{appname}/{appver} Windows/{Environment.OSVersion.Version}";
-
             using var client = new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.ParseAdd(ua);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(AppMeta.USER_AGENT_STRING);
             var resp = await client.GetAsync(CHECK_URL);
             resp.EnsureSuccessStatusCode();
             var xmlStr = await resp.Content.ReadAsStringAsync();
@@ -180,7 +169,7 @@ namespace LaserPointer
 
             var rver = new Version(pver);
 
-            var cver = GetCurrentAppVersion();
+            var cver = AppMeta.GetCurrentAppVersion();
             Debug.Assert(cver != null);
 
             if (cver >= rver)
@@ -198,10 +187,10 @@ namespace LaserPointer
 
     public class UpdateInfo
     {
-        public string Name { get; init; }
-        public Version CurrentVersion { get; init; }
-        public string Binary { get; init; }
-        public string DetailsURL { get; init; }
+        public string? Name { get; init; }
+        public Version? CurrentVersion { get; init; }
+        public string? Binary { get; init; }
+        public string? DetailsURL { get; init; }
         // TODO Changelog
     }
 }

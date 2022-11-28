@@ -12,6 +12,7 @@ using System.Security.Policy;
 using System.Windows.Threading;
 using System.IO;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace LaserPointer
 {
@@ -22,7 +23,19 @@ namespace LaserPointer
         bool cancelRequested = false;
         BreakReason breakReason;
 
+        const int WS_DLGFRAME = 0x00400000;
+
         string targetName;
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                var cp = base.CreateParams;
+                cp.Style &= ~WS_DLGFRAME;
+                return cp;
+            }
+        }
 
         enum BreakReason
         {
@@ -36,6 +49,7 @@ namespace LaserPointer
         {
             InitializeComponent();
             client = new();
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(AppMeta.USER_AGENT_STRING);
 
             targetName = Path.Combine(Environment.GetEnvironmentVariable("temp") ?? @"C:\", "JK-TEMP-" + Guid.NewGuid().ToString() + ".exe");
         }
@@ -52,41 +66,61 @@ namespace LaserPointer
             using (var tbw = new BinaryWriter(targetFile))
             using (var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
             {
-                using (var stream = await response.Content.ReadAsStreamAsync())
-                {
-                    while (true)
+                if (response.IsSuccessStatusCode)
+                    using (var stream = await response.Content.ReadAsStreamAsync())
                     {
-                        if (cancelRequested)
+                        while (true)
                         {
-                            breakReason = BreakReason.UserCancel;
-                            break;
+                            if (cancelRequested)
+                            {
+                                breakReason = BreakReason.UserCancel;
+                                break;
+                            }
+
+                            var buff = new byte[4096];
+                            var read = stream.Read(buff, 0, buff.Length);
+
+                            long? totalBytes = response.Content.Headers.ContentLength;
+                            bytesRecieved += read;
+
+                            ReportProgress(bytesRecieved, totalBytes);
+
+                            if (read < 1)
+                            {
+                                breakReason = BreakReason.Finished;
+                                break;
+                            }
+
+                            tbw.Write(buff, 0, read);
                         }
-
-                        var buff = new byte[4096];
-                        var read = stream.Read(buff, 0, buff.Length);
-
-                        if (read < 1)
-                        {
-                            breakReason = BreakReason.Finished;
-                            break;
-                        }
-
-                        tbw.Write(buff, 0, read);
-
-                        long? totalBytes = response.Content.Headers.ContentLength;
-                        bytesRecieved += read;
-
-                        ReportProgress(bytesRecieved, totalBytes);
                     }
-                }
+                else
+                    Invoke(() =>
+                    {
+                        TaskDialog.ShowDialog(this, new TaskDialogPage()
+                        {
+                            Caption = "An error occurred",
+                            AllowCancel = true,
+                            Buttons = new TaskDialogButtonCollection()
+                            {
+                                TaskDialogButton.OK
+                            },
+                            Icon = TaskDialogIcon.Error,
+                            Heading = "An error occurred",
+                            Text = "An error occurred while downloading the update!",
+                            Expander = new TaskDialogExpander(response.StatusCode.ToString())
+                        }, TaskDialogStartupLocation.CenterScreen);
+                        Close();
+                    });
             }
 
             if (breakReason == BreakReason.UserCancel)
             {
                 Close();
-            } else if (breakReason == BreakReason.Finished)
+            }
+            else if (breakReason == BreakReason.Finished)
             {
-                Process.Start(targetName);//, "/SP- /SILENT /NOCANCEL");
+                Process.Start(targetName, "/SP- /SILENT /NOCANCEL");
                 Application.Exit();
             }
         }

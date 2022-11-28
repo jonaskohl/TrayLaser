@@ -43,7 +43,7 @@ namespace LaserPointer
         {
             if (e.Mode == PowerModes.Resume)
             {
-                UpdateCheck.CheckForUpdateUI(this);
+                _ = UpdateCheck.CheckForUpdateUI(this);
             }
         }
 
@@ -71,7 +71,7 @@ namespace LaserPointer
             notifyIcon1.Icon = dark ? (
                 active ? Properties.Resources.TrayIcon_DarkMode_Active : Properties.Resources.TrayIcon_DarkMode_Inactive
             ) : (
-                active ? Properties.Resources.TrayIcon_LightMode_Active : Properties.Resources.TrayIcon_DarkMode_Inactive
+                active ? Properties.Resources.TrayIcon_LightMode_Active : Properties.Resources.TrayIcon_LightMode_Inactive
             );
         }
 
@@ -87,7 +87,7 @@ namespace LaserPointer
         private void TrayIconForm_Shown(object? sender, EventArgs e)
         {
             Hide();
-            UpdateCheck.CheckForUpdateUI(this, false);
+            _ = UpdateCheck.CheckForUpdateUI(this, false);
         }
 
         private void TrayIconForm_Load(object? sender, EventArgs e)
@@ -171,7 +171,7 @@ namespace LaserPointer
 
         private void checkForUpdateToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UpdateCheck.CheckForUpdateUI(this);
+            _ = UpdateCheck.CheckForUpdateUI(this);
         }
     }
 }
