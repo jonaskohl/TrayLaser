@@ -43,7 +43,7 @@ namespace LaserPointer
         {
             if (e.Mode == PowerModes.Resume)
             {
-                _ = UpdateCheck.CheckForUpdateUI(this);
+                _ = UpdateCheck.CheckForUpdateUI(this, false);
             }
         }
 
