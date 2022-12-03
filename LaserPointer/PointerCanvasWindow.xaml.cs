@@ -52,6 +52,8 @@ namespace LaserPointer
                         Debug.WriteLine("Moved to new screen!");
                         Top = info.rcWork.top;
                         Left = info.rcWork.left;
+                        Width = info.rcWork.Width;
+                        Height = info.rcWork.Height;
                     }
                     lastMonitorRect = info.rcWork;
                 }
@@ -72,8 +74,6 @@ namespace LaserPointer
 
             exStyle |= (int)Native.ExtendedWindowStyles.WS_EX_TOOLWINDOW;
             Native.SetWindowLong(wndHelper.Handle, (int)Native.GetWindowLongFields.GWL_EXSTYLE, (IntPtr)exStyle);
-
-            WindowState = WindowState.Maximized;
         }
 
         void Window_SourceInitialized(object? sender, EventArgs e)
