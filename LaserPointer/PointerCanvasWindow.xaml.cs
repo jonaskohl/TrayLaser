@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -27,26 +28,45 @@ namespace LaserPointer
             SourceInitialized += Window_SourceInitialized;
             InitializeComponent();
             Title = GetType().FullName ?? "";
+
+            Closed += PointerCanvasWindow_Closed;
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+        private void PointerCanvasWindow_Closed(object? sender, EventArgs e)
         {
-            WindowInteropHelper wndHelper = new WindowInteropHelper(this);
+            MouseHook.Stop();
+            MouseHook.MouseAction -= MouseHook_MouseAction;
+        }
 
+        Native.RECT lastMonitorRect = Native.RECT.Empty;
+        private void PositionWindowOnRightScreen()
+        {
             if (Native.GetCursorPos(out Native.POINT pt))
             {
                 var hMonitor = Native.MonitorFromPoint(pt, Native.MONITOR_DEFAULTTONEAREST);
                 var info = new Native.MONITORINFOEX();
                 if (Native.GetMonitorInfo(hMonitor, info))
                 {
-                    Top = info.rcWork.top;
-                    Left = info.rcWork.left;
+                    if (info.rcWork != lastMonitorRect)
+                    {
+                        Debug.WriteLine("Moved to new screen!");
+                        Top = info.rcWork.top;
+                        Left = info.rcWork.left;
+                    }
+                    lastMonitorRect = info.rcWork;
                 }
                 else
                     Debug.WriteLine("GetMonitorInfo failed!");
             }
             else
                 Debug.WriteLine("GetCursorPos failed!");
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            WindowInteropHelper wndHelper = new WindowInteropHelper(this);
+
+            PositionWindowOnRightScreen();
 
             int exStyle = (int)Native.GetWindowLong(wndHelper.Handle, (int)Native.GetWindowLongFields.GWL_EXSTYLE);
 
@@ -60,6 +80,14 @@ namespace LaserPointer
         {
             IntPtr handle = new WindowInteropHelper(this).Handle;
             HwndSource.FromHwnd(handle)?.AddHook(WindowProc);
+
+            MouseHook.MouseAction += MouseHook_MouseAction;
+            MouseHook.Start();
+        }
+
+        private void MouseHook_MouseAction(object? sender, EventArgs e)
+        {
+            PositionWindowOnRightScreen();
         }
 
         private IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -112,7 +140,8 @@ namespace LaserPointer
                         var val = pt.GetPropertyValue(StylusPointProperties.NormalPressure);
                         var curr = (val - min) / ((double)max / 2);
                         SetLaserScale(curr);
-                    } else
+                    }
+                    else
                     {
                         SetLaserScale(1);
                     }

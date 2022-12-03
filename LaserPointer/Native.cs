@@ -174,6 +174,11 @@ namespace LaserPointer
             {
                 return new Point(point.x, point.y);
             }
+
+            public override string ToString()
+            {
+                return base.ToString() + $"{{x={x}; y={y}}}";
+            }
         }
 
         [StructLayout(LayoutKind.Sequential)]
